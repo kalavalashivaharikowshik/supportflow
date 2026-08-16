@@ -1761,58 +1761,81 @@ Then explain the deliberate SLA boundary RED → GREEN exercise and Stage-3 auto
 
 ## Screenshots
 
-### Register Account
 
-register-account.png
+## Screenshots
 
-### Login Page
+### Authentication
 
+#### Register Account
 
-### Forgot password Page
+![Register Account](docs/screenshots/register-account.png)
 
+#### Login
 
+![Login Account](docs/screenshots/login-account.png)
 
+#### Forgot Password
 
-### Requester Dashboard
+![Forgot Password](docs/screenshots/forgot-password.png)
 
-_Add screenshot._
+### Requester Experience
 
-### Create Ticket
+#### Requester Dashboard
 
-_Add screenshot._
+![Requester Dashboard](docs/screenshots/requester-dashboard.png)
 
-### Agent Dashboard
+#### Create Ticket
 
-_Add screenshot._
+![Create Ticket](docs/screenshots/create-ticket.png)
 
-### Ticket Conversation
+### Agent Experience
 
-_Add screenshot._
+#### Agent Dashboard
 
-### Admin Dashboard
+![Agent Dashboard](docs/screenshots/agent-dashboard.png)
 
-_Add screenshot._
+#### Ticket Details and Conversation
 
-### SLA Settings
+![Ticket Details](docs/screenshots/ticket-details.png)
 
-_Add screenshot._
+### Administrator Experience
 
-### User Management
+#### Admin Dashboard
 
-_Add screenshot._
+![Admin Dashboard](docs/screenshots/admin-dashboard.png)
 
-### Live Notification
+#### SLA Settings
 
-_Add screenshot._
+![SLA Settings](docs/screenshots/sla-settings.png)
 
-### Automated Tests
+#### User Management
 
-_Add screenshot showing the passing pytest suite._
+![User Management](docs/screenshots/user-management.png)
 
-### Playwright E2E
+### Real-Time Notifications
 
-_Add screenshot showing the passing Playwright suite._
+![Live WebSocket Notification](docs/screenshots/live-notification.png)
+
+### Automated Testing Evidence
+
+#### Backend pytest — 98 Tests Passed
+
+![98 Backend Tests Passed](docs/screenshots/pytest-98-passed.png)
+
+#### Playwright E2E — 24 Tests Passed
+
+![24 Playwright Tests Passed](docs/screenshots/playwright-24-passed.png)
+
+### Deliberate RED → GREEN Evidence
+
+#### Deliberate RED Run
+
+![Deliberate RED Run](docs/screenshots/deliberate-red-run.png)
+
+#### Corrected GREEN Run
+
+![RED to GREEN Verification](docs/screenshots/red-green-fixed.png)
 
 ### GitHub Actions CI
 
-_Add screenshot showing the successful CI jobs._
+![GitHub Actions CI](docs/screenshots/github-actions-green.png)
