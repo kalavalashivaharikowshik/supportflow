@@ -1,0 +1,10 @@
+export const TICKET_STATUS =
+  Object.freeze({
+    OPEN: "OPEN",
+    ASSIGNED: "ASSIGNED",
+    IN_PROGRESS: "IN_PROGRESS",
+    ESCALATED: "ESCALATED",
+    RESOLVED: "RESOLVED",
+    CLOSED: "CLOSED",
+    REOPENED: "REOPENED",
+  });
