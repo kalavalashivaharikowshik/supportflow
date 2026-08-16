@@ -176,7 +176,7 @@ SupportFlow was designed around the following goals:
 ## System Architecture
 
 SupportFlow follows a layered full-stack architecture.
-
+```
 ┌───────────────────────────────────────────────────────┐
 │                    React + Vite                       │
 │                                                       │
@@ -206,7 +206,6 @@ SupportFlow follows a layered full-stack architecture.
 │ Users │ Roles │ Tickets │ Responses │ Audit Events    │
 │ SLA Config │ Notifications │ Password OTP │ App Config│
 └───────────────────────────────────────────────────────┘
-
 ---
 
 # Roles and Permissions
