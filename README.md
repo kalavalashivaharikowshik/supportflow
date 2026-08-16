@@ -1,1701 +1,1819 @@
-SupportFlow — AI-Assisted Support Ticket Escalation System
+# SupportFlow — AI-Assisted Support Ticket Escalation System
 
-A production-style full-stack support ticket management application with SLA enforcement, automatic escalation, workload-aware ticket reassignment, role-based access control, audit trails, real-time WebSocket notifications, automated testing, and continuous integration.
+SupportFlow is a full-stack support ticket management platform designed to prevent high-priority support requests from silently exceeding their service-level agreement (SLA) deadlines.
 
-SupportFlow was developed as part of the AI-Powered QA Automation, Documentation & Software Engineering Assessment. The project demonstrates not only application development, but also an AI-assisted build → test → fail → diagnose → fix → verify engineering workflow.
+The platform provides separate workflows for Requesters, Agents, and Administrators, automatically monitors SLA deadlines, escalates overdue tickets, maintains a complete audit trail, and delivers persistent and real-time WebSocket notifications.
 
----
-
-1. Overview
-
-Support teams commonly classify tickets as Low, Medium, High, or Critical priority. However, simply attaching a priority label to a ticket does not guarantee that it receives timely attention.
-
-A high-priority ticket may remain assigned but unattended until someone manually notices it.
-
-SupportFlow addresses this problem by making priority operationally meaningful.
-
-The application:
-
-- allows Requesters to create support tickets;
-- allows Administrators to assign tickets to Agents;
-- allows Agents to work on and resolve assigned tickets;
-- calculates SLA deadlines based on ticket priority;
-- automatically detects SLA breaches;
-- escalates overdue tickets;
-- optionally reassigns breached tickets to a less-loaded eligible Agent;
-- records important actions in an audit trail;
-- sends persistent notifications;
-- delivers live notifications through WebSockets;
-- enforces role and ownership security;
-- provides dashboards, reports, search, filters, sorting, and pagination;
-- verifies critical behavior through automated backend and browser tests.
+SupportFlow also includes an AI-assisted Stage-3 enhancement for SLA-based automatic reassignment. When an assigned ticket breaches its SLA, the system can automatically move the ticket to the least-loaded eligible Agent while preserving escalation, audit, notification, workload-capacity, and idempotency rules.
 
 ---
 
-2. Problem Statement
+## Problem Statement
 
-In many organizations, customer or internal support requests are managed through ticket queues.
+In many organizations, customer or internal support requests are managed through ticket queues. A common operational problem is that high-priority tickets can remain unattended or unresolved beyond their expected response window.
 
-A common operational failure occurs when high-priority tickets silently remain unattended.
+Without automated SLA enforcement, urgent tickets may depend entirely on someone manually noticing that they are overdue.
 
-Without automated SLA enforcement, urgent tickets depend on somebody manually monitoring the queue and noticing that action is overdue.
+This creates several business problems:
 
-This creates several problems:
+- SLA commitments may be breached.
+- High-priority tickets may remain with overloaded Agents.
+- Supervisors must manually monitor overdue work.
+- Priority labels may have no enforced operational consequence.
+- Assignment, escalation, response, and resolution history may not be consistently auditable.
+- Internal support information may accidentally be exposed to Requesters if role boundaries are poorly enforced.
 
-- SLA breaches — urgent requests exceed their expected response or resolution window.
-- Manual monitoring overhead — supervisors must continuously inspect ticket queues.
-- Weak accountability — it becomes difficult to determine exactly what happened to a ticket and when.
-- Inconsistent prioritization — a High or Critical priority label may have no actual operational consequence.
-- Agent overload — breached tickets may remain with an already overloaded Agent even when another Agent has capacity.
+SupportFlow addresses these problems by making SLA enforcement part of the application itself.
 
-SupportFlow solves this by enforcing ticket lifecycle and SLA rules directly within the application.
-
-A ticket receives an SLA deadline based on its priority. The system monitors active tickets and automatically escalates tickets that reach or exceed their deadline.
-
-As an additional Stage-3 enhancement, an escalated ticket can automatically move to the least-loaded eligible Agent.
+Each ticket receives an SLA deadline based on its configured priority. The system monitors active tickets, detects SLA breaches, escalates overdue tickets, records audit events, creates notifications, and can automatically reassign breached tickets to a more suitable Agent.
 
 ---
 
-3. Project Goals
+## Project Goals
 
-The primary goals of SupportFlow are to:
+SupportFlow was designed around the following goals:
 
-1. Provide secure Requester, Agent, and Administrator workflows.
-2. Enforce ticket lifecycle rules rather than treating tickets as simple CRUD records.
-3. Associate SLA deadlines with ticket priority.
-4. Automatically detect overdue tickets.
-5. Escalate breached tickets without manual intervention.
-6. Preserve a complete audit trail of important ticket events.
-7. Provide persistent and live notifications.
-8. Prevent unauthorized ticket and administrative access.
-9. Automatically redistribute breached tickets when another Agent has capacity.
-10. Verify business rules through automated tests.
-11. Demonstrate a genuine AI-assisted build → test → fix engineering loop.
-12. Run automated verification through GitHub Actions.
+1. Allow Requesters to create and track support tickets.
+2. Allow Agents to manage assigned support work.
+3. Allow Administrators to supervise tickets, users, SLA configuration, workload, and reports.
+4. Enforce role-based authorization at both API and frontend levels.
+5. Calculate and enforce SLA deadlines based on ticket priority.
+6. Automatically detect and escalate overdue tickets.
+7. Maintain an immutable-style audit trail of important ticket events.
+8. Support public ticket conversations and private internal support notes.
+9. Deliver persistent notifications and live WebSocket notifications.
+10. Support configurable operational behavior through Admin settings.
+11. Automatically reassign SLA-breached tickets to eligible Agents when configured.
+12. Validate the application through backend regression tests and real browser E2E tests.
+13. Run automated verification through GitHub Actions CI.
+14. Demonstrate an AI-assisted build → test → diagnose → fix engineering workflow.
 
----
-
-4. Key Features
-
-4.1 Authentication
-
-SupportFlow provides:
-
-- user registration;
-- secure login;
-- JWT-based authentication;
-- authenticated "/me" functionality;
-- password hashing;
-- logout/session handling;
-- protected frontend routes;
-- backend authentication dependencies;
-- role-aware authorization.
-
-Public registration creates Requester accounts only, preventing role injection during registration.
+=============================================================================================================================================================
 
 ---
 
-4.2 Forgot Password with Email OTP
+## Key Features
 
-The password recovery workflow uses email verification.
+### Requester
 
-Flow:
+- Secure registration and login.
+- Email OTP-based forgot-password and reset-password workflow.
+- Create support tickets with category and priority.
+- View personal tickets only.
+- Search, filter, sort, and paginate personal tickets.
+- View ticket status, priority, assignment, and SLA information.
+- View SLA deadline and SLA-risk information.
+- Participate in public ticket conversations.
+- View permitted ticket audit activity.
+- Close resolved tickets.
+- Reopen resolved tickets when enabled by Admin configuration.
+- Receive persistent notifications.
+- Receive real-time WebSocket notifications.
+- View and update profile information.
+- Change password securely.
 
-Forgot Password
-      ↓
-Enter registered email
-      ↓
-OTP generated
-      ↓
-OTP sent by email
-      ↓
-User enters OTP
-      ↓
-OTP verified
-      ↓
-Password reset allowed
-      ↓
-New password stored securely
+### Agent
 
-OTP handling is implemented across both the backend and frontend.
+- Secure Agent authentication.
+- View Agent dashboard and workload metrics.
+- View assigned tickets.
+- View escalated tickets.
+- Search, filter, sort, and paginate assigned work.
+- Start work on assigned tickets.
+- Send public responses to Requesters.
+- Add internal notes visible only to support staff.
+- View internal ticket activity.
+- Resolve active and escalated tickets.
+- Provide a mandatory resolution summary.
+- View SLA status and ticket history.
+- Receive ticket assignment and reassignment notifications.
+- Receive requester-response notifications.
+- Receive reopen and close notifications.
+- Receive SLA warning and escalation notifications.
 
----
+### Administrator
 
-5. User Roles
+- View system-wide dashboard metrics.
+- Monitor total, active, unassigned, resolved, at-risk, and escalated tickets.
+- Monitor Agent workload.
+- View all tickets.
+- Search by ticket information, Requester name, and Requester email.
+- Filter tickets by priority, status, assignment state, and SLA state.
+- Assign tickets to Agents.
+- Reassign tickets between Agents.
+- Change ticket priority.
+- View complete ticket audit history.
+- Add public responses when allowed by configuration.
+- Add internal support notes.
+- Manage users.
+- Activate and deactivate users.
+- Create Agent accounts.
+- Configure SLA durations.
+- Configure operational application settings.
+- Enable or disable requester reopen behavior.
+- Enable or disable Admin public responses.
+- Enable or disable notifications and WebSocket notifications.
+- Configure Agent workload capacity.
+- Enable or disable automatic SLA reassignment.
+- View reports.
+- Export ticket, SLA, and Agent-performance CSV reports.
 
-SupportFlow contains three primary roles:
+### Platform Capabilities
 
-REQUESTER
-AGENT
-ADMIN
+- JWT-based authentication.
+- Password hashing.
+- Role-based access control.
+- SQLAlchemy ORM.
+- Alembic database migrations.
+- Database-backed SLA configuration.
+- Automatic SLA monitoring.
+- Automatic SLA escalation.
+- Automatic least-loaded Agent reassignment.
+- Deterministic Agent selection.
+- Workload-capacity enforcement.
+- Escalation idempotency.
+- Ticket lifecycle validation.
+- Audit-event generation.
+- Persistent database notifications.
+- Live WebSocket notifications.
+- Search, filtering, sorting, and pagination.
+- Centralized error handling.
+- Structured logging.
+- Responsive React interface.
+- Mobile navigation.
+- Automated backend testing with pytest.
+- Browser E2E testing with Playwright.
+- Python linting with Ruff.
+- Frontend linting with ESLint.
+- Production frontend build verification.
+- GitHub Actions continuous integration.
 
-5.1 Requester
-
-A Requester can:
-
-- register;
-- log in;
-- create tickets;
-- select ticket priority;
-- view personal tickets;
-- search personal tickets;
-- filter and sort tickets;
-- view ticket details;
-- add public responses to owned tickets;
-- view the permitted conversation;
-- track ticket status;
-- track SLA information;
-- close resolved tickets;
-- reopen tickets when permitted by configuration;
-- receive persistent notifications;
-- receive real-time notifications;
-- manage profile information.
-
-A Requester cannot:
-
-- view another Requester's private ticket;
-- create internal notes;
-- access Agent pages;
-- access Administrator pages;
-- assign tickets;
-- manage users;
-- modify SLA configuration;
-- access administrative reports.
-
----
-
-5.2 Agent
-
-An Agent can:
-
-- log in;
-- view assigned tickets;
-- view escalated tickets;
-- view ticket details for permitted tickets;
-- start work on assigned tickets;
-- add public responses;
-- add internal notes;
-- resolve tickets;
-- provide resolution information;
-- receive assignment notifications;
-- receive SLA/escalation notifications;
-- receive automatic reassignment notifications;
-- receive real-time WebSocket notifications.
-
-An Agent cannot:
-
-- access Requester-only routes;
-- access Administrator-only routes;
-- manage users;
-- modify global SLA settings;
-- view unauthorized tickets.
-
----
-
-5.3 Administrator
-
-An Administrator can:
-
-- view the Administrator dashboard;
-- view system-wide tickets;
-- search, filter, sort, and paginate tickets;
-- assign tickets to Agents;
-- manually reassign tickets;
-- manage users;
-- activate and deactivate users;
-- create Agent accounts;
-- monitor Agent workloads;
-- configure SLA durations;
-- configure application behavior;
-- enable or disable automatic SLA reassignment;
-- access reports;
-- export ticket data;
-- review operational information;
-- manage permitted ticket actions.
+  =============================================================================================================================================================
 
 ---
 
-6. Technology Stack
+## Technology Stack
 
-Layer| Technology
-Frontend| React
-Frontend Build Tool| Vite
-Styling| Tailwind CSS
-Backend| FastAPI
-Language| Python 3.11
-ORM| SQLAlchemy
-Database Migrations| Alembic
-Database| SQLite
-Authentication| JWT
-Password Security| Passlib / bcrypt
-Configuration| Environment Variables / Pydantic Settings
-Real-Time Communication| WebSockets
-Backend Testing| pytest
-Browser E2E Testing| Playwright
-Python Code Quality| Ruff
-Frontend Code Quality| ESLint
-Frontend Production Build| Vite
-CI| GitHub Actions
-AI Assistance| ChatGPT / AI-assisted engineering workflow
+| Layer | Technology |
+|---|---|
+| Frontend | React + Vite |
+| Styling | Tailwind CSS |
+| Backend | FastAPI |
+| ORM | SQLAlchemy |
+| Database Migrations | Alembic |
+| Development Database | SQLite |
+| Authentication | JWT |
+| Password Security | Passlib / bcrypt |
+| Configuration | Pydantic Settings / environment variables |
+| API Communication | REST |
+| Real-Time Communication | WebSockets |
+| Backend Testing | pytest |
+| Browser E2E Testing | Playwright |
+| Python Code Quality | Ruff |
+| Frontend Code Quality | ESLint |
+| CI/CD Verification | GitHub Actions |
+| AI-Assisted Development | ChatGPT / AI-assisted build-test-fix workflow |
 
-SQLite was intentionally used to make the assessment easy to start and review without requiring an external database server.
-
-The architecture remains structured so that a production relational database such as PostgreSQL could be introduced later.
+=============================================================================================================================================================
 
 ---
 
-7. High-Level Architecture
+## System Architecture
 
-┌───────────────────────────────────────────────────────────┐
-│                    React + Vite Frontend                  │
-│                                                           │
-│  Requester UI        Agent UI           Administrator UI  │
-│                                                           │
-│  Auth │ Tickets │ Dashboard │ Notifications │ Reports     │
-└────────────────────────────┬──────────────────────────────┘
-                             │
-                        REST API
-                             │
-                             │ WebSocket
-                             ▼
-┌───────────────────────────────────────────────────────────┐
-│                         FastAPI                           │
-│                                                           │
-│ Auth / RBAC                                               │
-│ Ticket Management                                         │
-│ Assignment                                                │
-│ Responses                                                 │
-│ Status Workflow                                           │
-│ SLA Engine                                                │
-│ Escalation Engine                                         │
-│ Automatic Reassignment                                    │
-│ Audit Trail                                               │
-│ Notifications                                             │
-│ WebSocket Manager                                         │
-│ Dashboard                                                 │
-│ Reports                                                   │
-│ Administration                                            │
-└────────────────────────────┬──────────────────────────────┘
-                             │
-                         SQLAlchemy
-                             │
-                             ▼
-┌───────────────────────────────────────────────────────────┐
-│                          SQLite                           │
-│                                                           │
-│ Users                                                     │
-│ Roles                                                     │
-│ Tickets                                                   │
-│ Ticket Responses                                          │
-│ Ticket Audit Events                                       │
-│ SLA Configuration                                         │
-│ Application Configuration                                 │
-│ Notifications                                             │
-│ Password OTP                                              │
-└───────────────────────────────────────────────────────────┘
+SupportFlow follows a layered full-stack architecture.
+
+┌───────────────────────────────────────────────────────┐
+│                    React + Vite                       │
+│                                                       │
+│  Requester UI │ Agent UI │ Admin UI │ Notifications  │
+└──────────────────────────┬────────────────────────────┘
+                           │
+                  REST API │ WebSocket
+                           │
+                           ▼
+┌───────────────────────────────────────────────────────┐
+│                       FastAPI                         │
+│                                                       │
+│ Auth │ Users │ Tickets │ Responses │ SLA │ Reports    │
+│ Assignment │ Escalation │ Audit │ Notifications      │
+│ Dashboard │ Admin Configuration │ WebSocket          │
+└──────────────────────────┬────────────────────────────┘
+                           │
+                           ▼
+┌───────────────────────────────────────────────────────┐
+│                 SQLAlchemy ORM                        │
+└──────────────────────────┬────────────────────────────┘
+                           │
+                           ▼
+┌───────────────────────────────────────────────────────┐
+│                       SQLite                          │
+│                                                       │
+│ Users │ Roles │ Tickets │ Responses │ Audit Events    │
+│ SLA Config │ Notifications │ Password OTP │ App Config│
+└───────────────────────────────────────────────────────┘
+
+=============================================================================================================================================================
+
 
 ---
 
-8. Backend Architecture
+# Roles and Permissions
 
-The backend follows a layered architecture.
+## User Roles and Permissions
 
-API Routes
-    ↓
-Services
-    ↓
-Repositories
-    ↓
-SQLAlchemy Models
-    ↓
-Database
+SupportFlow uses three primary application roles.
 
-Responsibilities are intentionally separated.
+| Capability | Requester | Agent | Admin |
+|---|:---:|:---:|:---:|
+| Register publicly | ✅ | ❌ | ❌ |
+| Create ticket | ✅ | ❌ | ❌ |
+| View own tickets | ✅ | ❌ | ❌ |
+| View assigned tickets | ❌ | ✅ | ✅ |
+| View all tickets | ❌ | ❌ | ✅ |
+| Start work | ❌ | ✅ | ❌ |
+| Public response | ✅ | ✅ | Configurable |
+| Internal note | ❌ | ✅ | ✅ |
+| Resolve ticket | ❌ | ✅ | ❌ |
+| Close resolved ticket | ✅ | ❌ | ❌ |
+| Reopen resolved ticket | Configurable | ❌ | ❌ |
+| Assign ticket | ❌ | ❌ | ✅ |
+| Reassign ticket | ❌ | ❌ | ✅ |
+| Change priority | ❌ | ❌ | ✅ |
+| Manage users | ❌ | ❌ | ✅ |
+| Configure SLA | ❌ | ❌ | ✅ |
+| Configure application | ❌ | ❌ | ✅ |
+| View reports | ❌ | ❌ | ✅ |
+| Export reports | ❌ | ❌ | ✅ |
+| Receive notifications | ✅ | ✅ | ✅ |
 
-API Layer
+Authorization is enforced by the backend even when the frontend hides an action.
 
-Responsible for:
+For example:
 
-- HTTP endpoints;
-- request validation;
-- authentication dependencies;
-- role authorization;
-- response serialization.
+- A Requester cannot access another Requester's ticket by manually changing the URL.
+- An unassigned Agent cannot interact with another Agent's assigned ticket.
+- A Requester cannot create an internal note by directly calling the API.
+- Requesters and Agents cannot access Admin APIs.
+- Internal notes are filtered by the backend before Requester conversation data is returned.
 
-Service Layer
+The React frontend additionally uses protected and role-specific routes to prevent inappropriate navigation, but backend authorization remains the security boundary.
 
-Responsible for business rules such as:
+=============================================================================================================================================================
 
-- authentication;
-- ticket creation;
-- assignment;
-- ticket responses;
-- lifecycle transitions;
-- SLA calculations;
-- escalation;
-- automatic reassignment;
-- audit generation;
-- notifications;
-- dashboards;
-- reports.
+## SLA and Escalation Engine
 
-Repository Layer
+SLA enforcement is one of the core business features of SupportFlow.
 
-Responsible for database access and reusable query operations.
+### Priority-Based SLA Configuration
 
-Model Layer
+SLA durations are stored in the database and managed through the Admin interface rather than being permanently hardcoded into application logic.
 
-Contains SQLAlchemy database entities.
+This allows SLA policy to be changed without modifying source code.
 
-Schema Layer
-
-Contains API request and response validation models.
-
-This prevents HTTP, business, database, and UI logic from being mixed together.
-
----
-
-9. Ticket Lifecycle
-
-The primary ticket lifecycle is:
-
-OPEN
-  │
-  │ Administrator assigns Agent
-  ▼
-ASSIGNED
-  │
-  │ Agent starts work
-  ▼
-IN_PROGRESS
-  │
-  │ Agent resolves ticket
-  ▼
-RESOLVED
-  │
-  ├──────── Requester closes ────────► CLOSED
-  │
-  └──────── Requester reopens ───────► REOPENED
-
-SLA escalation introduces an additional path:
-
-ASSIGNED / IN_PROGRESS / REOPENED
-                │
-                │ SLA deadline reached
-                ▼
-            ESCALATED
-                │
-                │ Agent resolves
-                ▼
-             RESOLVED
-
-The backend enforces valid transitions.
-
-The frontend only exposes actions appropriate to the authenticated role and current ticket state.
-
----
-
-10. SLA Engine
-
-SupportFlow uses database-backed SLA configuration.
-
-SLA duration is associated with ticket priority.
-
-Example priority levels include:
-
-LOW
-MEDIUM
-HIGH
-CRITICAL
-
-When a ticket is created, the appropriate SLA configuration is used to determine its deadline.
+When a ticket is created, the configured SLA policy is used to determine its deadline.
 
 Conceptually:
 
-ticket creation time
-        +
-configured SLA duration
-        =
-SLA deadline
+```text
+Ticket Created
+      │
+      ├── Priority
+      │
+      ▼
+SLA Configuration
+      │
+      ▼
+SLA Deadline
+```
 
----
+### SLA Boundary Rule
 
-10.1 SLA Boundary Rule
+SupportFlow treats the SLA deadline as an inclusive boundary.
 
-The breach condition is intentionally inclusive:
-
+```text
 current_time >= sla_deadline
+```
 
 Therefore:
 
-Before SLA deadline
-→ NOT breached
+| Time | SLA Result |
+|---|---|
+| Before deadline | Not breached |
+| Exactly at deadline | Breached |
+| After deadline | Breached |
 
-Exactly at SLA deadline
-→ BREACHED
+This boundary is explicitly protected by automated tests because changing `>=` to `>` creates a subtle but meaningful business-rule defect.
 
-After SLA deadline
-→ BREACHED
+### Automatic Escalation
 
-This boundary condition is explicitly covered by automated tests.
-
----
-
-10.2 Escalation Rules
-
-When an eligible active ticket breaches its SLA:
-
-SLA deadline reached
-        ↓
-Ticket detected by escalation processor
-        ↓
-Ticket becomes ESCALATED
-        ↓
-Audit event created
-        ↓
-Notifications generated
-        ↓
-Optional automatic reassignment
-
-Resolved and closed tickets do not escalate.
-
-Already-escalated tickets are not escalated repeatedly.
-
----
-
-11. Escalation Idempotency
-
-The escalation process is designed to be idempotent.
-
-Running the escalation processor multiple times against the same already-escalated ticket must not create repeated escalation actions.
+The escalation processor evaluates eligible active tickets and detects overdue work.
 
 Conceptually:
 
-First processing
-→ ESCALATED
-→ audit generated
-→ notification generated
+```text
+Active Ticket
+     │
+     ▼
+Check SLA deadline
+     │
+     ├── Not overdue ──────► No action
+     │
+     └── Overdue
+             │
+             ▼
+         ESCALATED
+             │
+             ├── Audit event
+             ├── Notification
+             └── Optional auto-reassignment
+```
 
-Second processing
-→ already escalated
-→ no duplicate escalation
+### Escalation Safety Rules
 
-This behavior is verified through automated tests.
+SupportFlow protects escalation behavior with several rules:
 
----
+- Tickets before their SLA deadline are not escalated.
+- Tickets exactly at their SLA deadline are considered breached.
+- Tickets after their deadline are escalated.
+- Resolved tickets are not escalated.
+- Closed tickets are not escalated.
+- Already-escalated tickets are not repeatedly escalated.
+- Repeated escalation processing remains idempotent.
 
-12. SLA-Based Automatic Reassignment
+These rules are covered by dedicated pytest regression tests.
 
-Automatic reassignment was introduced as the major Stage-3 feature extension.
 
-Previously:
+=============================================================================================================================================================
 
+## SLA-Based Automatic Reassignment
+
+SupportFlow extends normal SLA escalation with configurable automatic Agent reassignment.
+
+The goal is not only to identify an overdue ticket, but also to attempt to move that ticket away from an Agent who may no longer be the best person to handle it.
+
+### Reassignment Flow
+
+```text
 Ticket breaches SLA
-        ↓
+        │
+        ▼
 Ticket becomes ESCALATED
-        ↓
-Original Agent remains assigned
+        │
+        ▼
+Is automatic reassignment enabled?
+        │
+        ├── No ─────────────► Keep current Agent
+        │
+        └── Yes
+              │
+              ▼
+      Find eligible Agents
+              │
+              ▼
+      Exclude current Agent
+              │
+              ▼
+      Exclude inactive Agents
+              │
+              ▼
+      Apply workload capacity
+              │
+              ▼
+      Rank by active workload
+              │
+              ▼
+      Lowest workload wins
+              │
+              ▼
+      Agent ID breaks ties
+              │
+        ┌─────┴─────┐
+        │           │
+   Candidate      No candidate
+        │           │
+        ▼           ▼
+    Reassign     Keep current
+      ticket        Agent
+        │           │
+        └─────┬─────┘
+              ▼
+      Escalation succeeds
+```
 
-The enhanced behavior is:
-
-Ticket breaches SLA
-        ↓
-Ticket becomes ESCALATED
-        ↓
-Check auto-reassignment configuration
-        ↓
-Find eligible replacement Agent
-        ↓
-Choose least-loaded Agent
-        ↓
-Reassign ticket
-        ↓
-Audit + notifications
-
----
-
-12.1 Eligibility Rules
+### Agent Eligibility Rules
 
 A replacement Agent must:
 
-- have the Agent role;
-- be active;
-- not be the ticket's existing Agent;
-- have active workload below the configured capacity.
+- Have the Agent role.
+- Be active.
+- Not be the ticket's current assigned Agent.
+- Be below the configured maximum active-ticket capacity.
 
----
+Among eligible Agents, SupportFlow chooses the Agent with the lowest active workload.
 
-12.2 Agent Selection
+If multiple Agents have the same workload, the lowest Agent ID is used as a deterministic tie-breaker.
 
-Eligible Agents are ranked by:
+This makes the selection behavior predictable and testable.
 
-1. Lowest active workload
-2. Lowest Agent ID
+### No-Replacement Fallback
 
-The Agent ID is used as a deterministic tie-breaker.
+Automatic reassignment is an enhancement to escalation, not a requirement for escalation to succeed.
 
-This ensures that automated tests and production behavior are predictable.
+If no eligible replacement Agent exists:
 
----
+```text
+Ticket status        → ESCALATED
+Assigned Agent       → unchanged
+Escalation processing → successful
+```
 
-12.3 Current Agent Exclusion
+The system therefore never loses an SLA escalation merely because all alternative Agents are unavailable or at capacity.
 
-The existing assignee is explicitly excluded from replacement selection.
+### Configuration
 
-Without this rule, the algorithm could technically "reassign" a ticket to the same Agent when that Agent has the lowest workload.
+Administrators can control this behavior using:
 
-Automated tests explicitly verify this edge case.
-
----
-
-12.4 Capacity Enforcement
-
-SupportFlow contains a configurable maximum active-ticket capacity per Agent.
-
-An Agent already at capacity is not eligible for automatic reassignment.
-
-Example:
-
-Maximum active tickets = 2
-
-Agent B workload = 2
-Agent C workload = 1
-
-Agent B → not eligible
-Agent C → eligible
-
----
-
-12.5 No Replacement Available
-
-Automatic reassignment must never prevent normal SLA escalation.
-
-If no replacement Agent exists:
-
-Ticket → ESCALATED
-Assignment → existing Agent retained
-
-Escalation therefore succeeds independently of reassignment availability.
-
----
-
-12.6 Feature Toggle
-
-Automatic reassignment can be controlled through application configuration:
-
+```text
 auto_reassign_on_escalation
+```
 
-When enabled:
+When disabled, SLA escalation continues normally without changing the assigned Agent.
 
-SLA breach
-→ escalation
-→ replacement search
+### Idempotency
 
-When disabled:
+Automatic reassignment is also protected against repeated scheduler processing.
 
-SLA breach
-→ escalation
-→ existing Agent retained
+Once the ticket has already been escalated and processed, subsequent escalation checks do not continuously move the ticket between Agents.
 
----
+=============================================================================================================================================================
 
-13. Audit Trail
+## Audit Trail
 
-SupportFlow maintains an audit history for important ticket events.
+SupportFlow maintains an audit history for important ticket actions.
+
+The audit system provides accountability by recording meaningful business events rather than relying only on the ticket's current state.
 
 Examples include:
 
-- ticket creation;
-- assignment;
-- reassignment;
-- status changes;
-- escalation;
-- automatic SLA reassignment;
-- resolution;
-- reopen/close actions.
+- Ticket creation.
+- Assignment.
+- Reassignment.
+- Status changes.
+- Responses where applicable.
+- Priority changes.
+- SLA escalation.
+- Automatic SLA reassignment.
+- Resolution.
+- Reopen and close activity.
 
-For automatic SLA reassignment, the audit trail preserves both facts:
+### Why the Audit Trail Matters
 
+A ticket may currently show:
+
+```text
+Status: ESCALATED
+Assigned Agent: Agent B
+```
+
+but that alone does not explain how it reached that state.
+
+The audit history can preserve the sequence:
+
+```text
+Ticket created
+      ↓
+Assigned to Agent A
+      ↓
+Agent started work
+      ↓
+SLA breached
+      ↓
+Ticket escalated
+      ↓
+Automatically reassigned
+Agent A → Agent B
+```
+
+This provides a traceable history for operational investigation and accountability.
+
+### Automatic Reassignment Auditing
+
+A successful SLA auto-reassignment preserves both facts:
+
+```text
 SLA_ESCALATED
 TICKET_AUTO_REASSIGNED
+```
 
-This is important because escalation and reassignment represent different business events.
+The reassignment event does not replace the SLA escalation event.
 
----
+Automated tests verify that both events are generated when automatic reassignment succeeds.
 
-14. Ticket Responses
+=============================================================================================================================================================
 
-SupportFlow supports two response types:
+## Notifications and Real-Time WebSockets
 
-PUBLIC RESPONSE
-INTERNAL NOTE
+SupportFlow uses two complementary notification mechanisms:
 
-Public Response
+```text
+Persistent Database Notification
+              +
+      WebSocket Delivery
+```
 
-Visible to permitted participants including the Requester.
+This means important notifications are stored for later retrieval while connected users can also receive updates immediately without refreshing the browser.
 
-Internal Note
+### Notification Architecture
 
-Used for internal support collaboration.
-
-Internal notes are hidden from Requesters.
-
-Automated security tests verify that Requesters cannot:
-
-- create internal notes;
-- retrieve internal notes;
-- access another Requester's ticket conversation.
-
----
-
-15. Notifications
-
-SupportFlow contains persistent application notifications.
-
-Notifications can be generated for events such as:
-
-- ticket assignment;
-- ticket reassignment;
-- responses;
-- ticket status changes;
-- SLA escalation;
-- automatic SLA reassignment;
-- resolution;
-- reopen/close actions.
-
-Automatic reassignment specifically notifies:
-
-Old Agent
-→ ticket was reassigned after SLA breach
-
-New Agent
-→ escalated ticket was assigned
-
-Unrelated Agents do not receive the notification.
-
-This behavior is covered by automated tests.
-
----
-
-16. Real-Time WebSocket Notifications
-
-SupportFlow provides live notification delivery through WebSockets.
-
-Architecture:
-
-Backend business event
-        ↓
+```text
+Business Event
+     │
+     ▼
 Notification Service
-        ↓
-Persistent notification stored
-        ↓
-WebSocket Manager
-        ↓
-Connected authenticated user
-        ↓
+     │
+     ├──────────────► Database
+     │                 │
+     │                 ▼
+     │            Notification history
+     │
+     ▼
+WebSocket Service
+     │
+     ▼
+Connected Browser
+     │
+     ▼
 React Notification Context
-        ↓
-UI updates without refresh
+     │
+     ▼
+Notification UI
+```
 
-This allows an Agent to receive an assignment notification immediately without refreshing the browser.
+### Example: Ticket Assignment
 
-A Playwright browser test verifies this behavior end to end.
+```text
+Admin assigns ticket
+        │
+        ▼
+Assignment service
+        │
+        ▼
+Agent notification created
+        │
+        ├── persisted in database
+        │
+        └── pushed through WebSocket
+                         │
+                         ▼
+                 Agent receives update
+                 without page refresh
+```
 
----
+This behavior is validated by the Playwright E2E test:
 
-17. Search, Filtering, Sorting and Pagination
+```text
+agent receives live assignment notification without refresh
+```
 
-Ticket lists support production-style data handling rather than loading every record into the UI.
+### Automatic Reassignment Notifications
 
-Supported capabilities include:
+When an SLA breach successfully causes automatic reassignment:
 
-- text search;
-- status filtering;
-- priority filtering;
-- sorting;
-- pagination;
-- role-aware ticket visibility.
+**Previous Agent**
 
-Requesters only search tickets they are authorized to access.
+Receives a notification that the overdue ticket has been reassigned.
 
-Administrators can operate on the wider system ticket set.
+**New Agent**
 
----
+Receives a notification that an escalated ticket has been assigned to them.
 
-18. Dashboards
+**Unrelated Agents**
 
-SupportFlow provides role-specific dashboards.
+Do not receive the reassignment notification.
 
-Requester Dashboard
+Dedicated backend tests verify all three cases.
 
-Shows information relevant to the Requester's own tickets.
+### Internal Note Privacy
 
-Agent Dashboard
+Internal support notes must never be exposed to Requesters.
 
-Shows information relevant to assigned and escalated Agent workload.
+SupportFlow enforces this rule in backend authorization and response logic rather than relying only on the frontend to hide internal notes.
 
-Administrator Dashboard
+Automated backend and Playwright security tests verify that Requesters cannot see internal Agent notes.
 
-Provides system-wide operational information.
+### WebSocket Authentication
 
-Dashboard endpoints are protected by role authorization.
+WebSocket connections are authenticated so that live application events are associated with an authenticated user.
 
-Automated tests verify that one role cannot access another role's dashboard.
+The backend test suite includes dedicated WebSocket authentication coverage.
 
----
+=============================================================================================================================================================
 
-19. Reports and Export
+## Project Structure
 
-Administrator reporting functionality includes ticket summary reporting and CSV export.
+SupportFlow separates backend application logic, frontend UI, automated tests, database migrations, and CI configuration.
 
-Security rules ensure that unauthorized roles cannot access administrative reports or exports.
-
-Automated tests verify:
-
-- valid report access;
-- invalid date ranges;
-- CSV responses;
-- attachment headers;
-- authentication requirements;
-- Requester authorization restrictions.
-
----
-
-20. Administrator Configuration
-
-Application behavior is database-backed and configurable.
-
-Configuration includes operational settings such as:
-
-- maximum active tickets per Agent;
-- escalation behavior;
-- notification behavior;
-- ticket workflow options;
-- automatic SLA reassignment.
-
-The automatic reassignment setting is:
-
-auto_reassign_on_escalation
-
-Only authorized Administrators can modify application configuration.
-
----
-
-21. Security
-
-Security was treated as a business requirement rather than only a UI concern.
-
-SupportFlow includes:
-
-- JWT authentication;
-- password hashing;
-- role-based authorization;
-- ownership checks;
-- protected API routes;
-- protected frontend routes;
-- role-specific frontend routing;
-- registration role-injection prevention;
-- internal-note privacy;
-- environment-based secrets;
-- CORS configuration;
-- request validation;
-- inactive-user controls;
-- restricted Administrator operations.
-
-The backend remains the authoritative security boundary.
-
-Hiding a button in React is never treated as sufficient authorization.
-
----
-
-22. Project Structure
-
-Backend
-
-backend/
+```text
+supportflow/
 │
-├── alembic/
-│   ├── versions/
-│   ├── env.py
-│   └── script.py.mako
+├── .github/
+│   └── workflows/
+│       └── ci.yml
 │
-├── app/
-│   ├── api/
-│   │   ├── dependencies/
-│   │   ├── routes/
-│   │   └── router.py
+├── backend/
+│   ├── alembic/
+│   │   └── versions/
 │   │
-│   ├── core/
-│   ├── db/
-│   ├── models/
-│   ├── schemas/
-│   ├── repositories/
-│   ├── services/
-│   ├── websocket/
-│   ├── scheduler/
-│   ├── utils/
-│   └── main.py
-│
-├── tests/
-│   ├── admin/
-│   ├── audit/
-│   ├── auth/
-│   ├── dashboard/
-│   ├── escalation/
-│   ├── notifications/
-│   ├── reports/
-│   ├security/
-│   ├── sla/
-│   ├── tickets/
-│   ├── users/
-│   ├── websocket/
-│   └── conftest.py
-│
-├── .env.example
-├── alembic.ini
-├── requirements.txt
-└── pytest.ini
-Frontend
-frontend/
-│
-├── public/
-│
-├── src/
-│   ├── api/
-│   ├── assets/
-│   ├── components/
-│   │   ├── common/
+│   ├── app/
+│   │   ├── api/
+│   │   │   ├── dependencies/
+│   │   │   └── routes/
+│   │   ├── core/
+│   │   ├── db/
+│   │   ├── models/
+│   │   ├── schemas/
+│   │   ├── repositories/
+│   │   ├── services/
+│   │   ├── websocket/
+│   │   ├── scheduler/
+│   │   ├── utils/
+│   │   └── main.py
+│   │
+│   ├── tests/
+│   │   ├── admin/
+│   │   ├── audit/
 │   │   ├── auth/
+│   │   ├── dashboard/
+│   │   ├── escalation/
+│   │   ├── notifications/
+│   │   ├── reports/
+│   │   ├── security/
+│   │   ├── sla/
 │   │   ├── tickets/
 │   │   ├── users/
-│   │   ├── dashboard/
-│   │   ├── notifications/
-│   │   ├── audit/
-│   │   └── sla/
+│   │   └── websocket/
 │   │
-│   ├── constants/
-│   ├── contexts/
-│   ├── hooks/
-│   ├── layouts/
-│   ├── pages/
-│   │   ├── auth/
-│   │   ├── requester/
-│   │   ├── agent/
-│   │   ├── admin/
-│   │   ├── tickets/
-│   │   └── notifications/
-│   │
-│   ├── routes/
-│   ├── services/
-│   ├── utils/
-│   ├── App.jsx
-│   ├── main.jsx
-│   └── index.css
+│   ├── alembic.ini
+│   ├── pytest.ini
+│   ├── requirements.txt
+│   └── .env.example
 │
-├── e2e/
-├── .env.example
-├── eslint.config.js
-├── package.json
-├── playwright.config.js
-└── vite.config.js
-23. Local Development Setup
-Prerequisites
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   │   ├── api/
+│   │   ├── assets/
+│   │   ├── components/
+│   │   ├── constants/
+│   │   ├── contexts/
+│   │   ├── hooks/
+│   │   ├── layouts/
+│   │   ├── pages/
+│   │   ├── routes/
+│   │   ├── services/
+│   │   ├── utils/
+│   │   ├── App.jsx
+│   │   ├── main.jsx
+│   │   └── index.css
+│   │
+│   ├── e2e/
+│   │   ├── admin/
+│   │   ├── agent/
+│   │   ├── auth/
+│   │   ├── notifications/
+│   │   ├── requester/
+│   │   ├── responsive/
+│   │   └── security/
+│   │
+│   ├── package.json
+│   ├── playwright.config.js
+│   ├── eslint.config.js
+│   └── vite.config.js
+│
+└── README.md
+```
+
+The structure keeps business logic, persistence, HTTP handling, UI components, and automated tests separated so that each layer can evolve independently.
+
+=============================================================================================================================================================
+
+## Environment Configuration
+
+SupportFlow uses environment variables for configuration rather than embedding environment-specific values directly in source code.
+
+Example configuration files are provided through `.env.example`.
+
+Actual `.env` files should not be committed to source control.
+
+### Backend
+
+Create:
+
+```text
+backend/.env
+```
+
+from:
+
+```text
+backend/.env.example
+```
+
+Important backend configuration includes values such as:
+
+```text
+DATABASE_URL
+SECRET/JWT configuration
+CORS configuration
+frontend URL
+email/SMTP configuration
+```
+
+Use the exact variable names defined in the project's `.env.example` and backend Settings model.
+
+### Frontend
+
+Create:
+
+```text
+frontend/.env
+```
+
+from:
+
+```text
+frontend/.env.example
+```
+
+The frontend environment configuration defines the backend/API location used by the Vite application.
+
+### Security
+
+Never commit:
+
+```text
+.env
+database credentials
+JWT production secrets
+SMTP passwords
+API secrets
+```
+
+Only `.env.example` files containing safe placeholders should be committed.
+
+=============================================================================================================================================================
+
+## Local Development Setup
+
+### Prerequisites
+
 Install:
-Git
-Python 3.11+
-Node.js
-npm
-Clone the repository:
+
+- Python 3.11+
+- Node.js and npm
+- Git
+
+### 1. Clone the Repository
+
+```bash
 git clone <repository-url>
 cd supportflow
-24. Backend Setup
-Move into the backend:
+```
+
+### 2. Create Backend Virtual Environment
+
+On Windows PowerShell:
+
+```powershell
 cd backend
-Create a Python virtual environment:
-Windows
 python -m venv venv
 .\venv\Scripts\Activate.ps1
-macOS/Linux
-python3 -m venv venv
-source venv/bin/activate
-Install dependencies:
+```
+
+### 3. Install Backend Dependencies
+
+```powershell
 pip install -r requirements.txt
-Create the local environment file from the example:
-.env.example
-→ .env
-Configure the required environment variables.
-Do not commit .env.
-25. Database Setup
-SupportFlow uses Alembic for schema migrations.
-From backend/ run:
+```
+
+### 4. Configure Backend Environment
+
+Create the local environment file from the provided example:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Review `.env` and provide the required local configuration values before starting the application.
+
+
+### 5. Initialize the Database
+
+SupportFlow uses SQLAlchemy for persistence and Alembic for schema migrations.
+
+Apply all migrations:
+
+```powershell
 alembic upgrade head
-This creates or upgrades the database to the latest schema.
-Start the backend:
-python -m uvicorn app.main:app --reload
-Backend:
-http://127.0.0.1:8000
-Swagger/OpenAPI documentation:
-http://127.0.0.1:8000/docs
-26. Frontend Setup
-Open another terminal:
-cd frontend
-Install dependencies:
-npm install
-Create the frontend environment configuration from:
-.env.example
-Start Vite:
-npm run dev
-Typical frontend address:
-http://127.0.0.1:5173
-27. API Testing
-Backend APIs were verified during development using:
-Swagger/OpenAPI;
-Postman;
-automated pytest integration tests.
-Postman testing covered authenticated and unauthorized API behavior during implementation.
-Swagger can be accessed while FastAPI is running at:
-http://127.0.0.1:8000/docs
-28. Automated Testing Strategy
-SupportFlow uses multiple testing layers.
-Service / API behavior
-        ↓
+```
+
+This creates or updates the database schema to the latest application revision.
+
+To inspect the current migration:
+
+```powershell
+alembic current
+```
+
+To inspect migration history:
+
+```powershell
+alembic history
+```
+
+Do not manually create production schema changes directly in SQLite. Schema evolution should be represented through Alembic migrations.
+
+=============================================================================================================================================================
+
+## Database Isolation
+
+SupportFlow separates development, backend-test, and browser-E2E data.
+
+```text
+                    SupportFlow
+                        │
+       ┌────────────────┼────────────────┐
+       │                │                │
+       ▼                ▼                ▼
+ supportflow.db   test_supportflow.db   supportflow_e2e.db
+       │                │                │
+       ▼                ▼                ▼
+ Development         pytest          Playwright E2E
+```
+
+### Development Database
+
+```text
+supportflow.db
+```
+
+Used for:
+
+- Manual application use.
+- Swagger testing.
+- Postman testing.
+- Normal local frontend/backend development.
+
+### Backend Test Database
+
+```text
+test_supportflow.db
+```
+
+Used only by:
+
+```bash
 pytest
+```
 
-Browser + API integration
-        ↓
-Playwright
+Backend tests use isolated test setup and should not operate on the normal development database.
 
-Code quality
-        ↓
-Ruff + ESLint
+### Browser E2E Database
 
-Production frontend compilation
-        ↓
-Vite build
+```text
+supportflow_e2e.db
+```
 
-Repository verification
-        ↓
-GitHub Actions
-29. Backend Automated Tests — pytest
-Run from:
-backend/
-Activate the virtual environment and execute:
-pytest -v
-Current verified result:
-98 passed
-The suite verifies functionality including:
-authentication;
-invalid authentication;
-/me;
-registration;
-role-injection prevention;
-role authorization;
-dashboards;
-ticket ownership;
-ticket creation;
-assignment;
-responses;
-internal notes;
-lifecycle transitions;
-SLA configuration;
-SLA boundary conditions;
-escalation;
-escalation idempotency;
-automatic reassignment;
-Agent workload selection;
-inactive Agent exclusion;
-capacity enforcement;
-reassignment fallback;
-application configuration;
-audit events;
-notifications;
-reports;
-CSV export;
-WebSocket authentication.
-30. SLA Boundary Tests
-Critical SLA tests verify:
-Before deadline
-→ no escalation
+Used by the running FastAPI application during Playwright browser tests.
 
-Exactly at deadline
-→ escalation
+It contains deterministic E2E accounts and data required for cross-role browser workflows.
 
-After deadline
-→ escalation
+Keeping pytest and Playwright databases separate prevents backend test fixtures from interfering with persistent browser-test state.
 
-Resolved ticket
-→ no escalation
+Runtime SQLite database files should not be committed to Git.
 
-Closed ticket
-→ no escalation
+=============================================================================================================================================================
 
-Already escalated ticket
-→ no duplicate escalation
-This boundary suite played an important role in the deliberate red-run demonstration.
-31. Automatic Reassignment Tests
-The Stage-3 feature introduced dedicated regression tests.
-Verified scenarios include:
-Overdue ticket
-→ least-loaded Agent selected
+### 6. Start the Backend
 
-Current Agent
-→ excluded
-
-Inactive Agent
-→ excluded
-
-Agent at capacity
-→ excluded
-
-No replacement Agent
-→ original Agent retained
-→ escalation still succeeds
-
-Feature disabled
-→ no automatic reassignment
-
-Repeated processing
-→ no duplicate reassignment
-
-Successful reassignment
-→ audit event generated
-
-Old Agent
-→ notified
-
-New Agent
-→ notified
-
-Unrelated Agent
-→ not notified
-32. Test Database Isolation
-SupportFlow deliberately separates databases according to purpose.
-backend/supportflow.db
-        ↓
-Normal local development
-Swagger
-Postman
-Manual frontend usage
-backend/test_supportflow.db
-        ↓
-pytest
-        ↓
-Backend automated test isolation
-backend/supportflow_e2e.db
-        ↓
-FastAPI + React + Playwright
-        ↓
-Browser E2E workflows
-The pytest and Playwright databases are intentionally separate.
-pytest aggressively creates and isolates test data.
-Playwright requires persistent seeded users across real browser and API requests.
-33. Playwright End-to-End Tests
 From:
-frontend/
-run:
-npx playwright test
-Current verified result:
-24 passed
-The suite runs with one worker because several E2E workflows intentionally operate against the same deterministic E2E environment.
-33.1 E2E Scenarios
-The Playwright suite includes:
-Authentication
-Requester login.
-Invalid password.
-Protected-route redirect.
-Registration.
-Requester
-Create Critical ticket.
-Search/filter own tickets.
-Complete ticket lifecycle.
-Agent
-Start work.
-Resolve ticket.
-Requester close after resolution.
-Administrator
-Assign ticket.
-Update application configuration.
-Update and restore SLA configuration.
-Deactivate and reactivate Agent.
-Notifications
-Agent receives live assignment notification without page refresh.
-Security
-Internal note hidden from Requester.
-Requester blocked from Administrator route.
-Requester blocked from Agent route.
-Agent blocked from Administrator route.
-Agent blocked from Requester route.
-Administrator blocked from Requester route.
-Administrator blocked from Agent route.
-Requester cannot access another Requester's ticket.
-Responsive UI
-Requester mobile navigation.
 
-34. Running the Complete Local Verification
-Step 1 — Backend Tests
+```text
+supportflow/backend
+```
+
+with the virtual environment activated:
+
+```powershell
+python -m uvicorn app.main:app --reload
+```
+
+The backend is available locally at:
+
+```text
+http://127.0.0.1:8000
+```
+
+FastAPI interactive API documentation is available at:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+Keep this terminal running while using the frontend.
+
+=============================================================================================================================================================
+
+### 7. Install and Start the Frontend
+
+Open another terminal:
+
+```powershell
+cd frontend
+npm install
+```
+
+Start Vite:
+
+```powershell
+npm run dev
+```
+
+For the host configuration used by the E2E environment:
+
+```powershell
+npm run dev -- --host 127.0.0.1
+```
+
+The application is then available at:
+
+```text
+http://127.0.0.1:5173
+```
+
+During local development:
+
+```text
+Browser
+   │
+   ▼
+React / Vite :5173
+   │
+   │ REST + WebSocket
+   ▼
+FastAPI :8000
+   │
+   ▼
+SQLite
+```
+
+---
+
+## API Verification
+
+### Swagger
+
+FastAPI provides interactive API documentation at:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+Swagger was used during development to inspect endpoints, request schemas, authentication requirements, and API responses.
+
+### Postman
+
+Backend APIs were also verified incrementally with Postman during implementation.
+
+The development workflow for API modules followed:
+
+```text
+Implement API
+     ↓
+Start FastAPI
+     ↓
+Test through Swagger/Postman
+     ↓
+Verify status + response
+     ↓
+Add automated regression coverage
+```
+
+This allowed individual APIs to be verified before later frontend and E2E integration.
+
+---
+
+## Automated Testing
+
+### Backend Regression Testing — pytest
+
+From:
+
+```text
+supportflow/backend
+```
+
+activate the virtual environment and run:
+
+```powershell
+pytest -v
+```
+
+Current verified result:
+
+```text
+98 passed
+```
+
+The backend suite covers major business and security behavior including:
+
+- Registration.
+- Authentication.
+- JWT-protected endpoints.
+- Role-based access control.
+- User management.
+- Dashboard authorization.
+- Ticket creation.
+- Ticket ownership.
+- Assignment.
+- Public responses.
+- Internal-note privacy.
+- Ticket status workflow.
+- SLA configuration.
+- SLA boundary conditions.
+- Escalation.
+- Escalation idempotency.
+- Automatic reassignment.
+- Agent eligibility.
+- Agent workload capacity.
+- Reassignment fallback.
+- Reassignment auditing.
+- Reassignment notifications.
+- Reports and CSV export.
+- WebSocket authentication.
+
+### Backend Linting
+
+Run:
+
+```powershell
+ruff check app
+```
+
+Current verified result:
+
+```text
+All checks passed!
+```
+
+============================================================================================================================================================
+
+### Browser E2E Testing — Playwright
+
+Playwright tests exercise the application through a real browser while the React frontend and FastAPI backend are running together.
+
+From:
+
+```text
+supportflow/frontend
+```
+
+run:
+
+```powershell
+npx playwright test
+```
+
+Current verified result:
+
+```text
+24 passed
+```
+
+The E2E suite covers workflows such as:
+
+- Requester login.
+- Invalid login handling.
+- Public registration.
+- Protected routes.
+- Critical-ticket creation.
+- Ticket search and filtering.
+- Admin assignment.
+- Agent workflow.
+- Ticket resolution.
+- Requester closure.
+- Complete cross-role ticket lifecycle.
+- Live WebSocket assignment notification.
+- Internal-note privacy.
+- Role-route authorization.
+- Cross-requester ticket access protection.
+- Admin application configuration.
+- SLA configuration.
+- User activation/deactivation.
+- Responsive mobile navigation.
+
+Playwright runs with one worker for deterministic database-mutating E2E workflows.
+
+### Frontend Quality Verification
+
+Run ESLint:
+
+```powershell
+npm run lint
+```
+
+Create a production build:
+
+```powershell
+npm run build
+```
+
+The production build verifies that the React/Vite application can be compiled successfully for deployment.
+
+The final local verification baseline is:
+
+```text
+Backend pytest       98 / 98 passed
+Backend Ruff         passed
+Frontend ESLint      passed
+Frontend Vite build  passed
+Playwright E2E       24 / 24 passed
+```
+
+---
+
+## Full Local E2E Verification
+
+The Playwright suite must run against the dedicated E2E database rather than the pytest database.
+
+### Terminal 1 — Backend
+
+```powershell
 cd backend
 .\venv\Scripts\Activate.ps1
-pytest -v
-Expected:
-98 passed
-Run Ruff:
-ruff check app
-Expected:
-All checks passed!
-Step 2 — Start E2E Backend
-Configure the E2E database:
+
 $env:DATABASE_URL="sqlite:///./supportflow_e2e.db"
 $env:CORS_ORIGINS="http://localhost:5173,http://127.0.0.1:5173"
 $env:FRONTEND_URL="http://127.0.0.1:5173"
-Start FastAPI:
+
 python -m uvicorn app.main:app
-Leave the terminal running.
-Step 3 — Start Frontend
-Open another terminal:
+```
+
+### Terminal 2 — Frontend
+
+```powershell
 cd frontend
 npm run dev -- --host 127.0.0.1
-Leave it running.
-Step 4 — Run Browser Tests
-Open another terminal:
+```
+
+### Terminal 3 — Playwright
+
+```powershell
 cd frontend
 npx playwright test
+```
+
 Expected:
+
+```text
 24 passed
-Step 5 — Frontend Quality Verification
-Run:
-npm run lint
-Then:
-npm run build
-Both commands should complete successfully.
-35. Deliberate RED → GREEN Demonstration
-A key assessment requirement was proving that the automated suite could detect an actual regression.
-The SLA deadline boundary was selected because it represents a meaningful business rule rather than an artificial syntax failure.
-Correct behavior:
+```
+
+Do not run the Playwright environment against `test_supportflow.db`, because that database belongs to the isolated pytest suite.
+
+============================================================================================================================================================
+
+## Deliberate RED → GREEN Regression Demonstration
+
+SupportFlow includes a deliberate regression exercise to demonstrate that the automated tests detect a genuine business-rule defect rather than merely confirming successful code.
+
+### Business Rule Under Test
+
+A ticket must be considered SLA-breached when the current time is **equal to or later than** its SLA deadline.
+
+Correct condition:
+
+```python
 current_time >= sla_deadline
-This means a ticket is considered breached exactly when its SLA deadline is reached.
-For the deliberate regression, the comparison was changed to:
+```
+
+The backend regression suite explicitly covers three SLA boundaries:
+
+```text
+Before deadline       → must NOT escalate
+Exactly at deadline   → MUST escalate
+After deadline        → MUST escalate
+```
+
+### Deliberate Defect
+
+For the RED run, the inclusive comparison was deliberately changed from:
+
+```python
+current_time >= sla_deadline
+```
+
+to:
+
+```python
 current_time > sla_deadline
-The consequence was:
-Before deadline
-→ still correct
+```
 
-After deadline
-→ still correct
+This introduces a realistic boundary defect.
 
-Exactly at deadline
-→ WRONG
-The automated boundary test detected the regression.
-The implementation was then restored to:
+A ticket checked at exactly its SLA deadline would incorrectly remain un-escalated.
+
+### RED Result
+
+The targeted SLA regression test detected the defect:
+
+```text
+test_ticket_exactly_at_sla_deadline_escalates
+FAILED
+```
+
+The failure demonstrated that the automated test suite protects an actual business requirement.
+
+### Fix
+
+The original inclusive boundary was restored:
+
+```python
 current_time >= sla_deadline
-The focused test passed again, followed by the complete backend regression suite.
-This demonstrated that the automated tests were capable of detecting a subtle business-rule defect rather than merely producing permanently green results.
-36. AI-Assisted Engineering Workflow
-AI tools were used as engineering assistants for:
-architecture planning;
-implementation guidance;
-test generation;
-edge-case identification;
-debugging;
-failure analysis;
-documentation;
-CI planning.
-AI-generated or AI-assisted changes were not treated as correct simply because they compiled.
-The engineering workflow was:
-Business Requirement
+```
+
+The targeted test was executed again and returned to GREEN.
+
+The complete regression suite was then rerun to verify that the correction did not introduce unrelated regressions.
+
+### Final Verification
+
+```text
+Targeted SLA boundary test     PASS
+Escalation tests               PASS
+Full backend regression        98 passed
+Playwright browser regression  24 passed
+```
+
+This RED → GREEN exercise provides concrete evidence that SupportFlow's tests can detect and prevent subtle SLA regressions.
+
+### Why This Regression Matters
+
+The deliberate defect was intentionally small but business-significant.
+
+A simple CRUD validation failure would not adequately demonstrate the value of automated regression testing. SLA boundary behavior is more meaningful because a one-character comparison change can alter real operational behavior.
+
+```text
+>=   correct
+>    incorrect at the exact deadline
+```
+
+Without the dedicated boundary test, this defect could be difficult to notice during normal manual testing.
+
+The exercise demonstrates:
+
+- Business-rule-focused automated testing.
+- Boundary-value testing.
+- Failure reproduction.
+- Root-cause isolation.
+- Targeted correction.
+- Full regression verification.
+
+---
+
+## Stage-3 AI-Assisted Change Loop
+
+After establishing a stable application and automated regression baseline, SupportFlow was extended through an AI-assisted engineering change.
+
+### Baseline Before the Change
+
+Before the Stage-3 extension:
+
+```text
+Backend regression suite   82 passed
+Playwright E2E suite       24 passed
+```
+
+The existing application already supported SLA detection and escalation.
+
+### New Requirement
+
+The new requirement was:
+
+> When an assigned ticket breaches its SLA, automatically attempt to reassign it to the least-loaded eligible Agent without breaking the existing escalation behavior.
+
+This requirement deliberately interacts with existing SLA, assignment, audit, notification, configuration, and security logic.
+
+### Change Analysis
+
+The feature required more than simply replacing `assigned_agent_id`.
+
+The implementation had to preserve several existing invariants:
+
+```text
+SLA breach
+    │
+    ├── escalation must still happen
+    ├── existing escalation audit must remain
+    ├── existing notifications must remain
+    ├── processing must remain idempotent
+    │
+    └── optional reassignment
+            │
+            ├── exclude current Agent
+            ├── exclude inactive Agents
+            ├── enforce Agent capacity
+            ├── calculate active workload
+            ├── choose least-loaded Agent
+            ├── deterministic tie-breaking
+            ├── preserve fallback behavior
+            ├── create reassignment audit
+            └── notify affected Agents
+```
+
+### AI-Assisted Engineering Workflow
+
+The change followed this loop:
+
+```text
+Existing stable system
         ↓
-AI Prompt
+New feature requirement
         ↓
-Implementation
+AI-assisted impact analysis
         ↓
-Automated Tests
+Identify affected modules
         ↓
-Observe Result
+Implement feature
         ↓
-Failure?
-   ┌────┴────┐
-  YES        NO
-   │          │
-Analyze       │
-   ↓          │
-Correct       │
-   ↓          │
-Retest ◄──────┘
-   ↓
-Full Regression
-37. Stage-3 AI Change Loop
-The major Stage-3 feature request was:
-When an assigned ticket breaches its SLA, automatically attempt to reassign it to the least-loaded eligible active Agent while preserving the existing escalation behavior.
-The requirement introduced interactions between:
-SLA Engine
-Escalation Engine
-Assignment
-Agent Capacity
-Application Configuration
-Audit Trail
-Notifications
-Idempotency
-Dedicated tests were created for the new business rules.
-The final implementation supports:
-least-loaded Agent selection;
-current-Agent exclusion;
-inactive-Agent exclusion;
-capacity enforcement;
-deterministic tie-breaking;
-no-candidate fallback;
-configuration toggle;
-reassignment auditing;
-old/new Agent notifications;
-escalation preservation;
-idempotency.
-After the Stage-3 enhancement, the complete backend regression suite reached:
-98 passed
-while the existing browser regression suite remained:
-24 passed
-This demonstrated that the new functionality could be integrated without breaking the previously verified application workflows.
-38. Continuous Integration — GitHub Actions
-SupportFlow uses GitHub Actions to verify the repository outside the local development environment.
-The CI workflow contains three major jobs:
-Backend Tests
-Frontend Lint and Build
-Playwright E2E
-38.1 Backend CI
-The backend job performs:
-Checkout
-    ↓
-Python setup
-    ↓
-Install dependencies
-    ↓
+Add focused automated tests
+        ↓
+Run tests
+        ↓
+Analyze failures
+        ↓
+Correct implementation
+        ↓
+Run focused regression
+        ↓
+Run complete backend regression
+        ↓
+Run browser E2E regression
+        ↓
+Run CI on clean GitHub environment
+```
+
+AI assistance accelerated implementation and reasoning, but automated tests remained the source of verification.
+
+### New Regression Coverage
+
+The Stage-3 change added tests for:
+
+- Least-loaded Agent selection.
+- Current Agent exclusion.
+- Inactive Agent exclusion.
+- Agent capacity enforcement.
+- No-replacement fallback.
+- Configuration toggle behavior.
+- Reassignment idempotency.
+- Reassignment audit creation.
+- Old Agent notification.
+- New Agent notification.
+- Unrelated Agent notification isolation.
+- Preservation of existing escalation audit behavior.
+
+### Result
+
+The backend suite increased from:
+
+```text
+82 tests
+```
+
+to:
+
+```text
+98 tests
+```
+
+while the existing browser suite remained:
+
+```text
+24 tests
+```
+
+and continued to pass.
+
+Final result:
+
+```text
+Existing functionality       preserved
+New functionality            covered
+Backend regression           98 / 98 passed
+Browser E2E regression       24 / 24 passed
+```
+============================================================================================================================================================
+
+---
+
+## Continuous Integration with GitHub Actions
+
+SupportFlow uses GitHub Actions to reproduce the project's verification process on a clean CI runner.
+
+The workflow is defined in:
+
+```text
+.github/workflows/ci.yml
+```
+
+### CI Architecture
+
+```text
+                 Git Push / Pull Request
+                           │
+              ┌────────────┴────────────┐
+              │                         │
+              ▼                         ▼
+       Backend Tests             Frontend Checks
+              │                         │
+              │                         │
+        Python 3.11                 Node.js
+        Dependencies                npm ci
+        Ruff                        ESLint
+        pytest                      Vite build
+              │                         │
+              └────────────┬────────────┘
+                           │
+                           ▼
+                    Playwright E2E
+                           │
+                           ├── Fresh E2E database
+                           ├── Alembic migrations
+                           ├── E2E seed
+                           ├── FastAPI
+                           ├── React/Vite
+                           ├── Chromium
+                           ├── 24 browser tests
+                           └── Playwright artifact
+```
+
+### Backend CI
+
+The backend job verifies:
+
+```text
+Dependency installation
+        ↓
 Ruff
-    ↓
+        ↓
 pytest
-The backend regression suite verifies all 98 tests.
-38.2 Frontend CI
-The frontend job performs:
-Checkout
-    ↓
-Node setup
-    ↓
+        ↓
+98 tests
+```
+
+### Frontend CI
+
+The frontend job verifies:
+
+```text
 npm ci
-    ↓
+   ↓
 ESLint
-    ↓
+   ↓
 Vite production build
-38.3 Playwright CI
-The browser job performs:
-Checkout
-    ↓
-Python setup
-    ↓
-Backend dependencies
-    ↓
-Fresh E2E database
-    ↓
-Alembic migrations
-    ↓
-E2E seed data
-    ↓
-Start FastAPI
-    ↓
-Node setup
-    ↓
-Frontend dependencies
-    ↓
-Install Chromium
-    ↓
-Start Vite
-    ↓
-Wait for services
-    ↓
-Run Playwright
-Current verified browser result in GitHub Actions:
-24 passed
-38.4 Playwright Artifacts
-GitHub Actions uploads the Playwright HTML report as a workflow artifact.
-On test failure, diagnostic artifacts can be retained to assist investigation.
-This makes CI failures inspectable instead of providing only a pass/fail indicator.
-39. Code Quality
-Backend:
-ruff check app
-Current result:
-All checks passed!
-Frontend:
-npm run lint
-Production build:
-npm run build
-The Vite production build completes successfully.
+```
 
-40. API Documentation
-FastAPI automatically provides interactive OpenAPI documentation.
-With the backend running:
-http://127.0.0.1:8000/docs
-This can be used to inspect and manually test available API endpoints.
-41. Environment and Secret Management
-Sensitive configuration is stored using environment variables.
-Files such as:
-.env
-must not be committed.
-The repository should contain:
-.env.example
-with safe placeholder values showing reviewers which variables are required.
-Runtime databases, virtual environments, frontend dependencies, test artifacts, and secrets are excluded through .gitignore.
-42. Development Database vs Test Databases
-The repository uses:
-supportflow.db
-for normal development.
-Automated testing uses separate databases:
-test_supportflow.db
-supportflow_e2e.db
-These files are runtime artifacts and should not be treated as source code.
-This separation prevents automated tests from damaging local development data.
-43. Why SQLite?
-SQLite was chosen because this assessment requires the application to be easy for another reviewer to start from the repository.
-Benefits include:
-no external database server;
-no database account setup;
-no Docker requirement;
-fast automated tests;
-simple local development;
-straightforward CI setup.
-For a larger production deployment, PostgreSQL would be a natural migration target.
-44. Why FastAPI?
-FastAPI provides:
-Python type-driven validation;
-automatic OpenAPI documentation;
-dependency-based authentication;
-clear REST API organization;
-asynchronous/WebSocket support;
-strong compatibility with pytest;
-concise service integration.
-45. Why React + Vite?
-React provides a component-oriented frontend architecture, while Vite provides:
-fast local development;
-straightforward environment configuration;
-optimized production builds;
-simple integration with Playwright.
-46. Why Playwright?
-Playwright verifies behavior through a real browser.
-This allows SupportFlow to test workflows that unit/API tests alone cannot completely verify, including:
-authentication through the UI;
-protected routing;
-cross-role workflows;
-live WebSocket notifications;
-internal-note privacy;
-mobile navigation;
-complete ticket lifecycle behavior.
-47. Why pytest?
-pytest provides fast and focused verification of backend business rules.
-It is particularly valuable for SupportFlow because the most important behavior contains subtle edge cases:
-SLA deadline equality;
-idempotency;
-role boundaries;
-ownership;
-capacity limits;
-automatic reassignment eligibility;
-notification targeting.
-48. Engineering Decisions
-Several design decisions were made intentionally.
-Business Logic Lives in the Backend
-React does not determine whether an action is authorized.
-The backend enforces authorization and workflow rules.
-SLA Configuration Is Database-Backed
-SLA durations are not scattered as hardcoded constants throughout the application.
-Escalation Is Idempotent
-Background processing can run repeatedly without repeatedly escalating the same ticket.
-Automatic Reassignment Cannot Block Escalation
-If no replacement Agent exists, escalation still succeeds.
-Internal Notes Are Protected Server-Side
-Requesters cannot retrieve internal notes simply by bypassing the frontend.
-Notifications Are Persistent First
-Notification records are stored before or alongside real-time delivery, preventing WebSocket connectivity from becoming the sole record of an event.
-Test Databases Are Isolated
-Backend test behavior cannot destroy the persistent E2E test environment.
-CI Uses a Fresh Environment
-GitHub Actions verifies that the repository works outside the original development machine.
-49. Current Automated Verification Status
-┌─────────────────────────────────────┐
-│       SUPPORTFLOW VERIFICATION      │
-├─────────────────────────────────────┤
-│ Backend pytest        98 / 98  PASS │
-│ Playwright E2E        24 / 24  PASS │
-│ Ruff                           PASS │
-│ ESLint                         PASS │
-│ Vite Production Build         PASS │
-│ GitHub Actions CI              PASS │
-└─────────────────────────────────────┘
-50. Demonstrated End-to-End Workflow
-One representative SupportFlow workflow is:
+### E2E CI
+
+The E2E job creates a clean browser-test environment rather than relying on a developer's existing local database.
+
+It:
+
+1. Creates the E2E database through migrations.
+2. Seeds deterministic E2E accounts.
+3. Starts FastAPI.
+4. Starts the Vite frontend.
+5. Waits for both services to become available.
+6. Installs Playwright Chromium.
+7. Runs all browser tests.
+8. Uploads the Playwright HTML report.
+
+Current verified CI result:
+
+```text
+Backend Tests             PASS
+Frontend Lint and Build   PASS
+Playwright E2E            24 / 24 PASS
+```
+
+This proves that the application and automated tests work on a clean GitHub-hosted environment rather than only on the original development machine.
+
+### CI Test Evidence
+
+Playwright reports are uploaded as GitHub Actions artifacts, allowing browser-test evidence to be inspected after workflow execution.
+
+When browser tests fail, test artifacts can also be retained to assist with diagnosis.
+
+---
+
+## Security Engineering
+
+SupportFlow applies security controls at the backend boundary rather than relying only on frontend visibility.
+
+### Authentication
+
+Protected APIs require authenticated JWT credentials.
+
+Invalid, missing, or unauthorized authentication is rejected by the backend.
+
+### Password Security
+
+User passwords are stored using secure password hashing rather than plaintext passwords.
+
+### Role-Based Access Control
+
+Backend authorization distinguishes:
+
+```text
+REQUESTER
+AGENT
+ADMIN
+```
+
+Role restrictions are independently tested.
+
+### Registration Protection
+
+Public registration creates Requester accounts.
+
+Clients cannot inject an elevated role such as Agent or Admin through the public registration request.
+
+This behavior is protected by automated regression testing.
+
+### Resource-Level Authorization
+
+Authorization also applies to individual resources.
+
+For example:
+
+```text
+Requester A
+     │
+     ├── Own ticket       → allowed
+     │
+     └── Requester B ticket → denied
+```
+
+This prevents horizontal privilege escalation.
+
+### Internal Note Privacy
+
+Internal Agent/Admin notes are filtered by the backend and are not exposed to Requesters.
+
+This behavior is verified at both backend and browser-test levels.
+
+### Administrative Boundaries
+
+Requester and Agent accounts cannot access protected Admin operations such as:
+
+- User management.
+- SLA configuration.
+- Application configuration.
+- Administrative reporting.
+
+### Environment Secrets
+
+Runtime secrets and environment-specific configuration belong in `.env` or deployment secret configuration and should not be committed to Git.
+
+The repository should contain only safe `.env.example` templates.
+
+---
+
+## Known Limitations and Future Improvements
+
+SupportFlow is designed as an assessment/demo-ready full-stack application. Several areas could be extended for a larger production deployment.
+
+### PostgreSQL
+
+SQLite keeps local setup and automated assessment simple.
+
+A production deployment with significant concurrent traffic could migrate persistence to PostgreSQL while retaining SQLAlchemy and Alembic.
+
+### Distributed Background Processing
+
+The current SLA scheduler is appropriate for the application's deployment model.
+
+At larger scale, SLA processing could move to a distributed task system with dedicated workers and distributed locking.
+
+### WebSocket Scaling
+
+A single application instance can manage WebSocket connections directly.
+
+A horizontally scaled deployment could introduce a shared pub/sub layer such as Redis so notifications can propagate across multiple backend instances.
+
+### Email Infrastructure
+
+Production email delivery could use a managed transactional email provider with delivery tracking, retry policies, and bounce handling.
+
+### Observability
+
+Production monitoring could be extended with:
+
+- Centralized structured logs.
+- Metrics.
+- Distributed tracing.
+- SLA-processing telemetry.
+- Alerting.
+
+### Database Concurrency
+
+SQLite is intentionally convenient for development and assessment. PostgreSQL would provide stronger concurrency characteristics for a multi-instance production environment.
+
+---
+
+## E2E Demo Accounts
+
+The automated E2E environment uses deterministic accounts for browser testing:
+
+```text
 Requester
-    ↓
-Creates Critical ticket
-    ↓
-SLA deadline generated
-    ↓
+requester.e2e@example.com
+
+Agent
+agent.e2e@example.com
+
+Secondary Agent
+agent2.e2e@example.com
+
 Administrator
-    ↓
-Assigns Agent
-    ↓
-Agent receives live notification
-    ↓
-Agent starts work
-    ↓
-Requester / Agent conversation
-    ↓
-Agent adds internal notes if required
-    ↓
-Agent resolves ticket
-    ↓
-Requester reviews resolution
-    ↓
-Requester closes ticket
-An SLA breach introduces:
-Active assigned ticket
-        ↓
-SLA deadline reached
-        ↓
-Automatic escalation
-        ↓
-Audit event
-        ↓
-Notification
-        ↓
-Auto-reassignment enabled?
-      /                 \
-    YES                  NO
-     ↓                    ↓
-Find eligible Agent    Keep Agent
-     ↓                    ↓
-Least-loaded Agent        │
-     ↓                    │
-Reassign                  │
-     ↓                    │
-Audit + notifications     │
-      \                  /
-       └──────► Continue workflow
+admin.e2e@example.com
+```
 
-51. Demo Flow
-A recommended demonstration sequence is:
-1. Introduce the problem
-Explain why high-priority tickets need enforced SLA behavior rather than only priority labels.
-2. Requester
-Log in.
-Create a Critical ticket.
-Show SLA information.
-Show My Tickets.
-3. Administrator
-Log in.
-Locate the ticket.
-Assign it to an Agent.
-Show Agent workload.
-Show SLA configuration.
-Show automatic reassignment configuration.
-4. Agent
-Log in.
-Show live assignment notification.
-Open the ticket.
-Start work.
-Add response/internal note.
-Resolve the ticket.
-5. Requester
-Show that internal notes are not visible.
-Review the resolution.
-Close the ticket.
-6. Automated Testing
-Show:
-pytest -v
-→ 98 passed
+These accounts belong to the dedicated E2E environment.
+
+Production credentials or private secrets must never be committed to the repository.
+
+---
+
+## Recommended Demo Flow
+
+A complete SupportFlow demonstration can follow this sequence:
+
+### 1. Requester
+
+```text
+Login
+  ↓
+Create high/critical-priority ticket
+  ↓
+View generated SLA information
+  ↓
+View ticket in My Tickets
+```
+
+### 2. Administrator
+
+```text
+Login
+  ↓
+Open All Tickets
+  ↓
+Locate new ticket
+  ↓
+Assign Agent
+```
+
+### 3. Real-Time Notification
+
+Keep the Agent session open while the assignment occurs.
+
+The Agent receives the assignment notification through WebSocket without refreshing the page.
+
+### 4. Agent
+
+```text
+Open Assigned Tickets
+  ↓
+Open ticket
+  ↓
+Start work
+  ↓
+Add public response
+  ↓
+Add internal note
+```
+
+### 5. Privacy Verification
+
+Return to the Requester account.
+
+The Requester can see the public response but cannot see the internal Agent note.
+
+### 6. Resolution
+
+```text
+Agent
+  ↓
+Resolve ticket
+  ↓
+Enter resolution summary
+```
+
 Then:
-npx playwright test
-→ 24 passed
-7. AI/Test Evidence
-Explain:
-Deliberate SLA boundary regression
-→ test RED
-→ fix
-→ GREEN
-Then explain the Stage-3 automatic reassignment feature.
-8. CI
-Show the GitHub Actions workflow with successful jobs.
-52. Known Limitations
-SupportFlow is designed as an assessment-scale production-style application rather than a large distributed support platform.
-Current limitations include:
-SQLite rather than a production database server;
-single application instance;
-in-process scheduling rather than a distributed job queue;
-WebSocket connection state stored within the running application process;
-no distributed cache;
-no external message broker;
-no file attachment/object-storage subsystem;
-no enterprise SSO;
-no multi-tenant organization model.
-These choices keep the repository straightforward for assessment reviewers while preserving clear extension points.
-53. Production Improvements
-For a larger production deployment, potential enhancements include:
-PostgreSQL;
-Redis;
-Celery/RQ or another distributed worker system;
-message broker;
-distributed WebSocket/pub-sub infrastructure;
-Docker and Docker Compose;
-cloud deployment;
-object storage for attachments;
-observability and metrics;
-centralized structured logging;
-tracing;
-rate limiting;
-refresh-token rotation;
-enterprise SSO;
-multi-tenant organizations;
-advanced SLA calendars and business hours;
-escalation policies with multiple levels;
-email/SMS notification channels.
-54. Assessment Evidence
-The repository demonstrates the four major engineering stages.
-STAGE 1
-Working full-stack application
-        ↓
-COMPLETE
 
-STAGE 2
-AI-assisted automated test generation
-+
-normal paths
-+
-edge cases
-+
-invalid/security cases
-+
-deliberate RED run
-        ↓
-COMPLETE
+```text
+Requester
+  ↓
+View resolved ticket
+  ↓
+Close ticket
+```
 
-STAGE 3
-New feature request
-+
-AI-assisted implementation
-+
-automated verification
-+
-failure analysis
-+
-correction
-+
-full regression
-        ↓
-COMPLETE
+### 7. Admin Features
 
-STAGE 4
-Architecture
-+
-Design documentation
-+
-User guide
-+
-presentation/demo preparation
-        ↓
-DOCUMENTATION PHASE
-55. AI Tools Used
-AI assistance was used during the engineering process.
-ChatGPT
-Used for:
-requirements analysis;
-architecture planning;
-implementation guidance;
-business-rule analysis;
-test-case generation;
-debugging guidance;
-regression analysis;
-CI planning;
-documentation;
-presentation preparation.
-Any AI-assisted implementation was verified through actual execution and automated tests rather than being assumed correct.
-56. Final Project Status
-SupportFlow currently provides:
-Authentication                         COMPLETE
-Email OTP password recovery            COMPLETE
-RBAC                                   COMPLETE
-User management                        COMPLETE
-Ticket management                      COMPLETE
-Assignment                             COMPLETE
-Responses                              COMPLETE
-Internal notes                         COMPLETE
-Status workflow                        COMPLETE
-SLA engine                             COMPLETE
-Automatic escalation                   COMPLETE
-Audit trail                            COMPLETE
-Persistent notifications               COMPLETE
-WebSocket notifications                COMPLETE
-Search/filter/sort/pagination           COMPLETE
-Dashboards                             COMPLETE
-Reports/CSV export                     COMPLETE
-Administrator configuration            COMPLETE
-Responsive frontend                    COMPLETE
-Backend automated tests                COMPLETE
-Browser E2E tests                      COMPLETE
-Deliberate RED run                     COMPLETE
-AI Stage-3 change loop                 COMPLETE
-Automatic SLA reassignment             COMPLETE
-GitHub Actions CI                      COMPLETE
-Documentation                          IN PROGRESS
-Presentation                           PENDING
-Final recorded demo                    PENDING
-57. Verification Summary
-At the end of the implementation and Stage-3 enhancement:
-Backend
+Demonstrate:
+
+- User management.
+- SLA settings.
+- Application configuration.
+- Reports/export.
+- Dashboard metrics.
+
+### 8. Automated Engineering Evidence
+
+Finish the demonstration with:
+
+```text
 pytest -v
 → 98 passed
 
-Backend quality
-ruff check app
-→ All checks passed
-
-Frontend
-npm run lint
-→ passed
-
-Frontend
-npm run build
-→ production build successful
-
-Browser E2E
 npx playwright test
 → 24 passed
 
 GitHub Actions
-Backend Tests
-→ passed
+→ all CI jobs green
+```
 
-Frontend Lint and Build
-→ passed
+Then explain the deliberate SLA boundary RED → GREEN exercise and Stage-3 automatic reassignment enhancement.
 
-Playwright E2E
-→ 24 passed
 
-Playwright HTML report
-→ uploaded as CI artifact
-58. Conclusion
-SupportFlow demonstrates a complete software engineering workflow around a business problem with meaningful rules and edge cases.
-The project goes beyond basic ticket CRUD by implementing:
-role-specific workflows;
-strict authorization;
-SLA deadline enforcement;
-automatic escalation;
-workload-aware automatic reassignment;
-auditability;
-persistent and real-time notifications;
-backend and browser automation;
-deliberate regression detection;
-AI-assisted feature evolution;
-continuous integration.
-Most importantly, AI assistance is paired with executable verification.
-The engineering principle demonstrated throughout the project is:
-Do not trust generated code because it looks correct.
+---
 
-Define the expected behavior.
-Run it.
-Test it.
-Observe failures.
-Diagnose them.
-Correct them.
-Run the full regression suite again.
-That build → test → fix loop is the core engineering approach behind SupportFlow.
+## Screenshots
+
+### Register Account
+
+
+### Login Page
+
+
+### Forgot password Page
+
+
+### Reset Password Page
+
+
+
+### Requester Dashboard
+
+_Add screenshot._
+
+### Create Ticket
+
+_Add screenshot._
+
+### Agent Dashboard
+
+_Add screenshot._
+
+### Ticket Conversation
+
+_Add screenshot._
+
+### Admin Dashboard
+
+_Add screenshot._
+
+### SLA Settings
+
+_Add screenshot._
+
+### User Management
+
+_Add screenshot._
+
+### Live Notification
+
+_Add screenshot._
+
+### Automated Tests
+
+_Add screenshot showing the passing pytest suite._
+
+### Playwright E2E
+
+_Add screenshot showing the passing Playwright suite._
+
+### GitHub Actions CI
+
+_Add screenshot showing the successful CI jobs._
