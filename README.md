@@ -1763,14 +1763,13 @@ Then explain the deliberate SLA boundary RED → GREEN exercise and Stage-3 auto
 
 ### Register Account
 
+register-account.png
 
 ### Login Page
 
 
 ### Forgot password Page
 
-
-### Reset Password Page
 
 
 
