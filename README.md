@@ -213,7 +213,7 @@ SupportFlow follows a layered full-stack architecture.
 ## User Roles and Permissions
 
 SupportFlow uses three primary application roles.
-
+```
 | Capability | Requester | Agent | Admin |
 |---|:---:|:---:|:---:|
 | Register publicly | ✅ | ❌ | ❌ |
@@ -236,7 +236,7 @@ SupportFlow uses three primary application roles.
 | View reports | ❌ | ❌ | ✅ |
 | Export reports | ❌ | ❌ | ✅ |
 | Receive notifications | ✅ | ✅ | ✅ |
-
+```
 Authorization is enforced by the backend even when the frontend hides an action.
 
 For example:
